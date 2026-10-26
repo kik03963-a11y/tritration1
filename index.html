@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ห้องทดลอง 3D: กรด-เบส และการไทเทรต (เคมี ม.5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg1:#09111d;--bg2:#12344a;--glass:rgba(255,255,255,.07);--glass2:rgba(255,255,255,.12);--line:rgba(255,255,255,.16);--tx:#e9f1fb;--mut:#9db2c8;--em:#34d399;--bl:#60a5fa;--am:#fbbf24;--ro:#fb7185}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Prompt',system-ui,sans-serif;color:var(--tx);background:radial-gradient(1200px 700px at 28% 18%,var(--bg2),var(--bg1));overflow:hidden}
+button,select,input{font-family:inherit}
+.app{display:flex;height:100vh;gap:14px;padding:14px}
+.stage{position:relative;flex:1;min-width:0;border-radius:26px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(640px 460px at 46% 38%,rgba(96,165,250,.2),transparent 70%),rgba(255,255,255,.03);box-shadow:0 24px 60px rgba(0,0,0,.35)}
+#c{display:block;width:100%;height:100%;outline:none;cursor:grab}
+#c:active{cursor:grabbing}
+.title{position:absolute;left:22px;top:18px;pointer-events:none;max-width:60%}
+.title h1{font-size:20px;font-weight:700;letter-spacing:.2px;line-height:1.3}
+.title p{font-size:12px;color:var(--mut);margin-top:3px}
+.tools{position:absolute;right:16px;top:16px;display:flex;gap:8px}
+.chip{border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--tx);font-size:12px;padding:7px 12px;border-radius:999px;cursor:pointer;transition:background .2s,transform .2s}
+.chip:hover{background:var(--glass2)}
+.chip.on{background:rgba(52,211,153,.25);border-color:rgba(52,211,153,.6)}
+.chip:focus-visible,.btn:focus-visible,.tab:focus-visible,.hs:focus-visible{outline:2px solid var(--bl);outline-offset:2px}
+.hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:11px;color:var(--mut);background:rgba(0,0,0,.28);padding:5px 12px;border-radius:999px;white-space:nowrap;pointer-events:none}
+#hotspots{position:absolute;inset:0;pointer-events:none}
+.hs{position:absolute;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:2px solid #fff;background:rgba(52,211,153,.85);color:#06281c;font-weight:700;font-size:13px;cursor:pointer;pointer-events:auto;box-shadow:0 4px 14px rgba(0,0,0,.35);transition:background .2s,scale .2s}
+.hs::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:2px solid rgba(52,211,153,.7);animation:ring 2s ease-out infinite}
+.hs:hover,.hs.act{background:var(--am);scale:1.15}
+.hs.act::after{border-color:var(--am)}
+@keyframes ring{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.card{position:absolute;left:18px;bottom:48px;width:min(340px,calc(100% - 36px));padding:16px 18px;border-radius:20px;border:1px solid var(--line);background:rgba(10,20,34,.62);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 18px 40px rgba(0,0,0,.4);display:none}
+.card.show{display:block;animation:pop .35s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{0%{opacity:0;transform:translateY(16px) scale(.96)}100%{opacity:1;transform:none}}
+.card h3{font-size:15px;font-weight:600;color:var(--em);padding-right:26px}
+.card p{font-size:13px;line-height:1.7;margin-top:6px;color:#d6e3f2}
+.card b{color:var(--am);font-weight:600}
+.card .x{position:absolute;right:12px;top:10px;border:0;background:transparent;color:var(--mut);font-size:20px;cursor:pointer;line-height:1}
+.panel{width:420px;max-width:46vw;display:flex;flex-direction:column;border-radius:26px;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden}
+.tabs{display:flex;gap:6px;padding:12px 12px 0}
+.tab{flex:1;border:0;border-radius:14px 14px 0 0;padding:10px 6px;font-size:13px;font-weight:500;color:var(--mut);background:transparent;cursor:pointer;border-bottom:2px solid transparent;transition:color .2s,border-color .2s,background .2s}
+.tab.on{color:var(--tx);border-color:var(--em);background:var(--glass)}
+.body{flex:1;overflow:auto;padding:16px;scrollbar-width:thin}
+.sec{display:none}
+.sec.on{display:block;animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.field{margin-bottom:14px}
+.field>label,.lab{display:block;font-size:12px;color:var(--mut);margin-bottom:6px}
+select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(8,16,28,.6);color:var(--tx);font-size:13px}
+select option{background:#0f1b2b}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.box{padding:12px;border-radius:16px;border:1px solid var(--line);background:var(--glass)}
+.box.a{border-color:rgba(251,191,36,.45)}
+.box.t{border-color:rgba(96,165,250,.5)}
+.box small{font-size:11px;color:var(--mut);display:block}
+.box strong{font-size:14px;display:block;margin:2px 0 8px}
+.box span.v{font-size:12px;color:var(--tx)}
+input[type=range]{width:100%;accent-color:var(--em)}
+.read{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.read div{padding:10px 8px;text-align:center;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid var(--line)}
+.read small{display:block;font-size:10.5px;color:var(--mut)}
+.read em{font-style:normal;font-size:20px;font-weight:700}
+.read em.s{font-size:13px;display:block;margin-top:5px;min-height:20px}
+.gauge{position:relative;height:12px;border-radius:99px;margin:4px 0 6px;background:linear-gradient(90deg,#ef4444,#f97316,#facc15,#4ade80,#38bdf8,#6366f1,#a855f7)}
+.gauge i{position:absolute;top:-4px;width:6px;height:20px;border-radius:4px;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.45);transform:translateX(-3px);transition:left .3s}
+.scale{display:flex;justify-content:space-between;font-size:10px;color:var(--mut);margin-bottom:14px}
+.btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.btn{border:1px solid var(--line);border-radius:14px;padding:10px 4px;font-size:12px;font-weight:500;color:#fff;cursor:pointer;transition:transform .15s,filter .2s}
+.btn:hover{filter:brightness(1.15)}
+.btn:active{transform:scale(.95)}
+.b1{background:rgba(59,130,246,.55)}.b2{background:rgba(99,102,241,.55)}.b3{background:rgba(16,185,129,.55)}.b3.run{background:rgba(245,158,11,.6)}.b4{background:rgba(244,63,94,.5)}
+.badge{display:none;margin-top:12px;padding:9px 12px;border-radius:12px;font-size:12.5px;font-weight:600;color:#3a2500;background:var(--am);text-align:center;animation:pulse 1.2s infinite}
+.badge.on{display:block}
+@keyframes pulse{50%{box-shadow:0 0 0 7px rgba(251,191,36,.18)}}
+.chartwrap{position:relative;height:270px;padding:8px;border-radius:16px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.eq{margin-top:12px;padding:12px;border-radius:14px;text-align:center;font-weight:600;font-size:14px;background:rgba(0,0,0,.28);border:1px solid var(--line);color:#c7d2fe}
+.concept{margin-top:10px;padding:12px 14px;border-radius:14px;font-size:13px;line-height:1.75;color:#d6e3f2;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3)}
+.concept b{color:var(--em)}
+.q{padding:14px;border-radius:16px;margin-bottom:12px;background:var(--glass);border:1px solid var(--line)}
+.q p{font-size:13px;font-weight:500;line-height:1.6;margin-bottom:8px}
+.q label{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:7px 8px;border-radius:10px;cursor:pointer}
+.q label:hover{background:var(--glass2)}
+.q input{accent-color:var(--em)}
+.ex{display:none;margin-top:8px;padding:9px 11px;border-radius:10px;font-size:12px;line-height:1.6}
+.ex.ok{display:block;background:rgba(52,211,153,.18);color:#a7f3d0}
+.ex.no{display:block;background:rgba(251,113,133,.18);color:#fecdd3}
+.score{font-size:14px;font-weight:700;margin-left:12px}
+.foot{padding:10px;text-align:center;font-size:10.5px;color:var(--mut);border-top:1px solid var(--line)}
+@media (max-width:900px){
+body{overflow:auto}
+.app{flex-direction:column;height:auto;min-height:100vh}
+.stage{flex:none;height:62vh;min-height:380px}
+.panel{width:100%;max-width:none}
+.body{overflow:visible}
+.title{max-width:70%}
+.title h1{font-size:16px}
+.hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="c" tabindex="0" aria-label="ฉากจำลอง 3 มิติของชุดไทเทรต"></canvas>
+    <div id="hotspots"></div>
+    <div class="title">
+      <h1>ห้องทดลอง 3D: กรด-เบส และการไทเทรต</h1>
+      <p>เคมี ชั้นมัธยมศึกษาปีที่ 5 · กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</p>
+    </div>
+    <div class="tools">
+      <button class="chip" id="spinBtn" type="button">หมุนอัตโนมัติ</button>
+      <button class="chip" id="homeBtn" type="button">รีเซ็ตมุมมอง</button>
+    </div>
+    <div class="card" id="card" role="dialog" aria-live="polite">
+      <button class="x" id="cardX" type="button" aria-label="ปิดการ์ด">×</button>
+      <h3 id="cardT"></h3>
+      <p id="cardP"></p>
+    </div>
+    <div class="hint">ลากเพื่อหมุน · คลิกขวาลากเพื่อแพน · เลื่อนลูกกลิ้งเพื่อซูม · กดจุดสีเขียวเพื่อดูคำอธิบาย</div>
+  </div>
+
+  <aside class="panel">
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-tab="lab" type="button">การทดลอง</button>
+      <button class="tab" data-tab="graph" type="button">กราฟและสมการ</button>
+      <button class="tab" data-tab="quiz" type="button">แบบทดสอบ</button>
+    </div>
+    <div class="body">
+      <div class="sec on" id="sec-lab">
+        <div class="field">
+          <label for="pair">คู่ปฏิกิริยากรด-เบส</label>
+          <select id="pair">
+            <option value="strong-strong">กรดแก่ + เบสแก่ (HCl + NaOH)</option>
+            <option value="weak-strong">กรดอ่อน + เบสแก่ (CH₃COOH + NaOH)</option>
+            <option value="strong-weak">กรดแก่ + เบสอ่อน (HCl + NH₃)</option>
+          </select>
+        </div>
+        <div class="two">
+          <div class="box a">
+            <small>สารในขวดรูปชมพู่ (Analyte)</small>
+            <strong id="anName">HCl (25 mL)</strong>
+            <span class="v">ความเข้มข้น <b id="anVal">0.10</b> M</span>
+            <input type="range" id="anConc" min="0.05" max="0.20" step="0.01" value="0.10" aria-label="ความเข้มข้นของสารในขวดรูปชมพู่">
+          </div>
+          <div class="box t">
+            <small>สารในบิวเรตต์ (Titrant)</small>
+            <strong id="tiName">NaOH</strong>
+            <span class="v">ความเข้มข้น <b id="tiVal">0.10</b> M</span>
+            <input type="range" id="tiConc" min="0.05" max="0.20" step="0.01" value="0.10" aria-label="ความเข้มข้นของสารในบิวเรตต์">
+          </div>
+        </div>
+        <div class="field">
+          <label for="ind">อินดิเคเตอร์ (Indicator)</label>
+          <select id="ind">
+            <option value="phenolphthalein">ฟีนอล์ฟทาลีน · pH 8.3–10.0 · ใส ➔ ชมพู</option>
+            <option value="bromothymol">โบรโมไทมอล บลู · pH 6.0–7.6 · เหลือง ➔ น้ำเงิน</option>
+            <option value="methylOrange">เมทิลออเรนจ์ · pH 3.1–4.4 · แดง ➔ เหลือง</option>
+          </select>
+        </div>
+        <div class="read">
+          <div><small>pH ปัจจุบัน</small><em id="ph" style="color:var(--em)">1.00</em></div>
+          <div><small>ปริมาตร Titrant</small><em id="vol" style="color:var(--bl)">0.0 mL</em></div>
+          <div><small>สีอินดิเคเตอร์</small><em class="s" id="col">ใสไม่มีสี</em></div>
+        </div>
+        <div class="gauge"><i id="mk" style="left:7%"></i></div>
+        <div class="scale"><span>0 กรด</span><span>7 กลาง</span><span>14 เบส</span></div>
+        <div class="btns">
+          <button class="btn b1" id="add05" type="button">+0.5 mL</button>
+          <button class="btn b2" id="add10" type="button">+1.0 mL</button>
+          <button class="btn b3" id="auto" type="button">หยดอัตโนมัติ</button>
+          <button class="btn b4" id="reset" type="button">รีเซ็ต</button>
+        </div>
+        <div class="badge" id="eqb">ถึงจุดสมดุลแล้ว (Equivalence Point)</div>
+      </div>
+
+      <div class="sec" id="sec-graph">
+        <div class="lab">กราฟการไทเทรต (Titration Curve): pH เทียบกับปริมาตรที่เติม</div>
+        <div class="chartwrap"><canvas id="chart"></canvas></div>
+        <div class="eq" id="eqn">HCl (aq) + NaOH (aq) → NaCl (aq) + H₂O (l)</div>
+        <div class="concept"><b>ความรู้เกี่ยวกับการไทเทรตคู่นี้</b><br><span id="concept"></span></div>
+      </div>
+
+      <div class="sec" id="sec-quiz">
+        <div class="lab">ทดสอบความเข้าใจท้ายกิจกรรม (3 ข้อ)</div>
+        <div id="quizBox"></div>
+        <div style="display:flex;align-items:center;margin-top:4px">
+          <button class="btn b3" id="submitQ" type="button" style="padding:10px 18px">ส่งคำตอบและตรวจเฉลย</button>
+          <span class="score" id="score"></span>
+        </div>
+      </div>
+    </div>
+    <div class="foot">สื่อการสอนโต้ตอบวิชาเคมี เรื่อง การไทเทรตกรด-เบส · พัฒนาเพื่อการศึกษา ม.5</div>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const state = {pair:'strong-strong',anConc:.1,anVol:25,tiConc:.1,added:0,maxVol:50,indicator:'phenolphthalein',timer:null,ka:1.8e-5,kb:1.8e-5};
+
+const PAIRS = {
+  'strong-strong':{an:'HCl',ti:'NaOH',eq:'HCl (aq) + NaOH (aq) → NaCl (aq) + H₂O (l)',good:['phenolphthalein','bromothymol'],
+    txt:'ปฏิกิริยาระหว่างกรดแก่ (HCl) และเบสแก่ (NaOH) ได้เกลือกลาง (NaCl) จุดสมดุลมี pH เท่ากับ 7.0 พอดีที่ 25°C ใช้อินดิเคเตอร์ได้หลายชนิด เช่น ฟีนอล์ฟทาลีน หรือ โบรโมไทมอล บลู เพราะ pH เปลี่ยนอย่างรวดเร็วมากรอบจุดสมดุล'},
+  'weak-strong':{an:'CH₃COOH',ti:'NaOH',eq:'CH₃COOH (aq) + NaOH (aq) → CH₃COONa (aq) + H₂O (l)',good:['phenolphthalein'],
+    txt:'ปฏิกิริยาระหว่างกรดอ่อน (CH₃COOH) และเบสแก่ (NaOH) ได้เกลือ CH₃COONa ซึ่งไอออน CH₃COO⁻ เกิดไฮโดรลิซิสทำให้สารละลายที่จุดสมดุลเป็นเบส (pH > 7) ควรเลือกใช้ฟีนอล์ฟทาลีนเป็นอินดิเคเตอร์'},
+  'strong-weak':{an:'HCl',ti:'NH₃',eq:'HCl (aq) + NH₃ (aq) → NH₄Cl (aq)',good:['methylOrange'],
+    txt:'ปฏิกิริยาระหว่างกรดแก่ (HCl) และเบสอ่อน (NH₃) ได้เกลือ NH₄Cl ซึ่งไอออน NH₄⁺ เกิดไฮโดรลิซิสทำให้สารละลายที่จุดสมดุลเป็นกรด (pH < 7) ควรเลือกใช้เมทิลออเรนจ์เป็นอินดิเคเตอร์'}
+};
+const INDS = {
+  phenolphthalein:{n:'ฟีนอล์ฟทาลีน',r:'pH 8.3–10.0 เปลี่ยนจากใสไม่มีสีเป็นชมพู'},
+  bromothymol:{n:'โบรโมไทมอล บลู',r:'pH 6.0–7.6 เปลี่ยนจากเหลืองเป็นน้ำเงิน'},
+  methylOrange:{n:'เมทิลออเรนจ์',r:'pH 3.1–4.4 เปลี่ยนจากแดงเป็นเหลือง'}
+};
+
+function getVeq(){return state.anConc*state.anVol/state.tiConc}
+
+function calcPH(v){
+  const V0=state.anVol,C0=state.anConc,Ct=state.tiConc,Veq=getVeq();
+  const nA=C0*V0/1000,nB=Ct*v/1000,tot=V0+v;
+  let ph=7;
+  if(state.pair==='strong-strong'){
+    if(Math.abs(v-Veq)<.001)ph=7;
+    else if(v<Veq)ph=-Math.log10((nA-nB)/tot*1000);
+    else ph=14+Math.log10((nB-nA)/tot*1000);
+  }else if(state.pair==='weak-strong'){
+    if(v===0)ph=-Math.log10(Math.sqrt(state.ka*C0));
+    else if(v<Veq-.001)ph=-Math.log10(state.ka)+Math.log10(nB/(nA-nB));
+    else if(Math.abs(v-Veq)<.001){const kb=1e-14/state.ka;ph=14+Math.log10(Math.sqrt(kb*(nA/tot*1000)))}
+    else ph=14+Math.log10((nB-nA)/tot*1000);
+  }else{
+    if(Math.abs(v-Veq)<.001){const ka=1e-14/state.kb;ph=-Math.log10(Math.sqrt(ka*(nA/tot*1000)))}
+    else if(v<Veq)ph=-Math.log10((nA-nB)/tot*1000);
+    else ph=14-(-Math.log10(state.kb)+Math.log10(nA/(nB-nA)));
+  }
+  return Math.min(Math.max(ph,0),14);
+}
+
+function indColor(ph){
+  const i=state.indicator;
+  if(i==='phenolphthalein'){
+    if(ph<8.3)return{c:0xbfe3ff,o:.32,t:'ใสไม่มีสี'};
+    if(ph<=10)return{c:0xf472b6,o:.72,t:'ชมพูอ่อน'};
+    return{c:0xdb2777,o:.88,t:'ชมพูเข้ม'};
+  }
+  if(i==='bromothymol'){
+    if(ph<6)return{c:0xfacc15,o:.8,t:'สีเหลือง'};
+    if(ph<=7.6)return{c:0x4ade80,o:.8,t:'สีเขียว'};
+    return{c:0x3b82f6,o:.85,t:'สีน้ำเงิน'};
+  }
+  if(ph<3.1)return{c:0xef4444,o:.85,t:'สีแดง'};
+  if(ph<=4.4)return{c:0xf97316,o:.85,t:'สีส้ม'};
+  return{c:0xfacc15,o:.82,t:'สีเหลือง'};
+}
+
+const stage=$('stage'),cv=$('c');
+const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(40,1,.1,100);
+const HOME=new THREE.Vector3(5.4,4.4,7.4),TARGET=new THREE.Vector3(-.5,3.1,0);
+camera.position.copy(HOME);
+const controls=new THREE.OrbitControls(camera,cv);
+controls.target.copy(TARGET);
+controls.enableDamping=true;
+controls.dampingFactor=.07;
+controls.minDistance=4;
+controls.maxDistance=16;
+controls.maxPolarAngle=Math.PI/2-.03;
+controls.autoRotateSpeed=1.4;
+controls.update();
+
+scene.add(new THREE.HemisphereLight(0xcfe3ff,0x16263a,.75));
+const sun=new THREE.DirectionalLight(0xffffff,1.15);
+sun.position.set(5,9,6);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-7;sun.shadow.camera.right=7;sun.shadow.camera.top=9;sun.shadow.camera.bottom=-4;
+sun.shadow.camera.near=1;sun.shadow.camera.far=30;
+sun.shadow.bias=-.0004;
+scene.add(sun);
+const rim=new THREE.PointLight(0x38bdf8,.9,24);
+rim.position.set(-5,4,-5);
+scene.add(rim);
+const warm=new THREE.PointLight(0xfbbf24,.35,16);
+warm.position.set(4,2,5);
+scene.add(warm);
+
+function mesh(geo,mat,x,y,z,cast){
+  const m=new THREE.Mesh(geo,mat);
+  m.position.set(x,y,z);
+  m.castShadow=!!cast;
+  m.receiveShadow=true;
+  scene.add(m);
+  return m;
+}
+const metal=new THREE.MeshStandardMaterial({color:0x9aa8b8,metalness:.85,roughness:.28});
+const dark=new THREE.MeshStandardMaterial({color:0x1b2635,metalness:.55,roughness:.4});
+const glass=()=>new THREE.MeshPhysicalMaterial({color:0xd6ecff,transparent:true,opacity:.2,roughness:.04,metalness:0,clearcoat:1,clearcoatRoughness:.05,side:THREE.DoubleSide,depthWrite:false});
+
+const floor=mesh(new THREE.CircleGeometry(9,64).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:0x0e1a29,roughness:.55,metalness:.3}),-.5,-.17,0,false);
+const grid=new THREE.GridHelper(18,36,0x2a4560,0x1a2e44);
+grid.position.set(-.5,-.165,0);
+scene.add(grid);
+
+mesh(new THREE.BoxGeometry(4.4,.16,2.5),dark,-.95,-.09,0,true);
+mesh(new THREE.CylinderGeometry(.075,.075,7.6,24),metal,-2.4,3.7,0,true);
+mesh(new THREE.BoxGeometry(2.3,.1,.16),metal,-1.3,5,0,true);
+mesh(new THREE.TorusGeometry(.2,.04,12,32).rotateX(Math.PI/2),metal,0,5,0,true);
+
+const bur=mesh(new THREE.CylinderGeometry(.16,.16,4.2,40,1,true),glass(),0,5.3,0,false);
+const burLiq=mesh(new THREE.CylinderGeometry(.125,.125,1,32),new THREE.MeshStandardMaterial({color:0x9ad1ff,transparent:true,opacity:.7,roughness:.2}),0,5.3,0,false);
+for(let i=0;i<=20;i++){
+  const long=i%5===0;
+  mesh(new THREE.BoxGeometry(long?.14:.08,.012,.01),new THREE.MeshBasicMaterial({color:0xcfe3f7}),0,3.2+i*.2,.165,false);
+}
+mesh(new THREE.CylinderGeometry(.07,.07,.5,20).rotateZ(Math.PI/2),dark,0,3.1,0,true);
+mesh(new THREE.BoxGeometry(.34,.06,.06),new THREE.MeshStandardMaterial({color:0xfb7185,roughness:.4}),0,3.1,.3,true);
+mesh(new THREE.CylinderGeometry(.05,.015,.42,20,1,true),glass(),0,2.87,0,false);
+
+const flaskPts=[[.001,0],[.82,0],[.9,.05],[.22,1.3],[.22,1.9],[.28,1.97]].map(p=>new THREE.Vector2(p[0],p[1]));
+mesh(new THREE.LatheGeometry(flaskPts,64),glass(),0,0,0,false);
+const FR=.9,FS=(.9-.22)/1.25;
+const flaskMat=new THREE.MeshStandardMaterial({color:0xbfe3ff,transparent:true,opacity:.32,roughness:.15,metalness:0});
+const flaskLiq=new THREE.Mesh(new THREE.BufferGeometry(),flaskMat);
+flaskLiq.castShadow=true;
+scene.add(flaskLiq);
+const surf=new THREE.Mesh(new THREE.CircleGeometry(1,48).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.25,roughness:.05,metalness:.4}));
+scene.add(surf);
+
+const dropMat=new THREE.MeshStandardMaterial({color:0x9ad1ff,transparent:true,opacity:.9,roughness:.1,emissive:0x1e5a99,emissiveIntensity:.5});
+const drop=new THREE.Mesh(new THREE.SphereGeometry(.06,16,16),dropMat);
+drop.scale.y=1.4;
+drop.visible=false;
+scene.add(drop);
+const ripple=new THREE.Mesh(new THREE.RingGeometry(.1,.14,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+scene.add(ripple);
+
+const vis={f:0,b:1,col:new THREE.Color(0xbfe3ff),op:.32,h:0};
+const tg={f:0,b:1,col:new THREE.Color(0xbfe3ff),op:.32};
+const dropAnim={t:-1,y0:2.66};
+const rippleAnim={t:-1};
+
+function levelH(f){return .4+f*.7}
+function rebuildFlask(h){
+  const rTop=FR-FS*(h-.05);
+  const g=new THREE.CylinderGeometry(rTop,.86,h-.05,48,1,false);
+  g.translate(0,(h-.05)/2+.05,0);
+  flaskLiq.geometry.dispose();
+  flaskLiq.geometry=g;
+  surf.position.y=h+.001;
+  surf.scale.setScalar(rTop*.98);
+  vis.h=h;
+}
+
+function setBur(b){
+  const H=Math.max(b*4,.0001);
+  burLiq.scale.y=H;
+  burLiq.position.y=3.2+H/2;
+  burLiq.visible=b>.002;
+}
+
+function resize(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+
+const HS=[
+  {id:'bur',p:new THREE.Vector3(.25,6.6,0),n:'1'},
+  {id:'stop',p:new THREE.Vector3(.3,3.1,.3),n:'2'},
+  {id:'flask',p:new THREE.Vector3(.75,.95,.4),n:'3'},
+  {id:'indic',p:new THREE.Vector3(-.5,.6,.5),n:'4'}
+];
+const hsLayer=$('hotspots');
+const hsEls={};
+let openId=null;
+HS.forEach(h=>{
+  const b=document.createElement('button');
+  b.className='hs';
+  b.type='button';
+  b.textContent=h.n;
+  b.setAttribute('aria-label','จุดข้อมูลที่ '+h.n);
+  b.addEventListener('click',()=>openCard(openId===h.id?null:h.id));
+  hsLayer.appendChild(b);
+  hsEls[h.id]=b;
+});
+
+function cardData(id){
+  const P=PAIRS[state.pair],I=INDS[state.indicator];
+  const ph=calcPH(state.added).toFixed(2);
+  const good=P.good.includes(state.indicator);
+  if(id==='bur')return{t:'บิวเรตต์ (Burette)',p:`หลอดแก้วที่มีขีดบอกปริมาตร ใช้บรรจุสารละลายมาตรฐาน (Titrant) การทดลองนี้คือ <b>${P.ti}</b> ความเข้มข้น <b>${state.tiConc.toFixed(2)} M</b> ขณะนี้เหลืออยู่ <b>${(state.maxVol-state.added).toFixed(1)} mL</b> จากความจุ ${state.maxVol} mL`};
+  if(id==='stop')return{t:'ก๊อกควบคุม (Stopcock)',p:`ควบคุมอัตราการไหลของ Titrant ใกล้จุดสมดุลต้องหยดช้า ๆ เพราะ pH เปลี่ยนเร็วมาก ลองกดปุ่ม +0.5 mL แล้วสังเกตหยดที่ตกลงสู่ขวด ปริมาตรสะสมตอนนี้ <b>${state.added.toFixed(1)} mL</b>`};
+  if(id==='flask')return{t:'ขวดรูปชมพู่ (Erlenmeyer Flask)',p:`บรรจุสารที่ต้องการหาความเข้มข้น (Analyte) คือ <b>${P.an} ${state.anVol} mL</b> ความเข้มข้น <b>${state.anConc.toFixed(2)} M</b> ก้นกว้างปากแคบช่วยให้เขย่าสารได้โดยไม่กระเด็น pH ของสารละลายตอนนี้ <b>${ph}</b>`};
+  if(id==='indic')return{t:'อินดิเคเตอร์: '+I.n,p:`ช่วงเปลี่ยนสี ${I.r} สีที่เห็นตอนนี้คือ <b>${indColor(calcPH(state.added)).t}</b> สำหรับคู่นี้ อินดิเคเตอร์ตัวนี้<b>${good?'เหมาะสม':'ไม่เหมาะสม'}</b> ${good?'เพราะช่วงเปลี่ยนสีอยู่ในช่วงที่ pH พุ่งขึ้นรอบจุดสมดุล':'เพราะช่วงเปลี่ยนสีอยู่นอกช่วงที่ pH พุ่งขึ้นรอบจุดสมดุล ลองเปลี่ยนตัวอื่นแล้วเปรียบเทียบ'}`};
+}
+function renderCard(){
+  if(!openId)return;
+  const d=cardData(openId);
+  $('cardT').textContent=d.t;
+  $('cardP').innerHTML=d.p;
+}
+function openCard(id){
+  openId=id;
+  Object.keys(hsEls).forEach(k=>hsEls[k].classList.toggle('act',k===id));
+  const card=$('card');
+  card.classList.remove('show');
+  if(id){
+    renderCard();
+    void card.offsetWidth;
+    card.classList.add('show');
+  }
+}
+$('cardX').addEventListener('click',()=>openCard(null));
+
+const tmp=new THREE.Vector3();
+function placeHotspots(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  HS.forEach(s=>{
+    tmp.copy(s.p).project(camera);
+    const el=hsEls[s.id];
+    const vis_=tmp.z<1;
+    el.style.display=vis_?'block':'none';
+    el.style.transform=`translate(${(tmp.x*.5+.5)*w}px,${(-tmp.y*.5+.5)*h}px)`;
+  });
+}
+
+const clock=new THREE.Clock();
+function frame(){
+  requestAnimationFrame(frame);
+  const dt=Math.min(clock.getDelta(),.05);
+  const k=Math.min(1,dt*6);
+  vis.f+=(tg.f-vis.f)*k;
+  vis.b+=(tg.b-vis.b)*k;
+  vis.col.lerp(tg.col,Math.min(1,dt*5));
+  vis.op+=(tg.op-vis.op)*k;
+  const h=levelH(vis.f);
+  if(Math.abs(h-vis.h)>.0008)rebuildFlask(h);
+  flaskMat.color.copy(vis.col);
+  flaskMat.opacity=vis.op;
+  setBur(vis.b);
+  if(dropAnim.t>=0){
+    dropAnim.t+=dt/.5;
+    const t=Math.min(dropAnim.t,1);
+    drop.visible=true;
+    drop.position.set(0,dropAnim.y0-(dropAnim.y0-levelH(vis.f))*t*t,0);
+    if(dropAnim.t>=1){drop.visible=false;dropAnim.t=-1;rippleAnim.t=0}
+  }
+  if(rippleAnim.t>=0){
+    rippleAnim.t+=dt/.9;
+    const t=Math.min(rippleAnim.t,1);
+    ripple.position.set(0,levelH(vis.f)+.004,0);
+    const rMax=(FR-FS*(levelH(vis.f)-.05))*.9;
+    ripple.scale.setScalar(1+t*rMax/.14);
+    ripple.material.opacity=.7*(1-t);
+    if(rippleAnim.t>=1){ripple.material.opacity=0;rippleAnim.t=-1}
+  }
+  controls.update();
+  renderer.render(scene,camera);
+  placeHotspots();
+}
+
+let chart=null;
+function initChart(){
+  if(typeof Chart==='undefined')return;
+  Chart.defaults.font.family="'Prompt',sans-serif";
+  Chart.defaults.color='#b6c8dc';
+  chart=new Chart($('chart').getContext('2d'),{
+    type:'line',
+    data:{datasets:[
+      {label:'ค่า pH',data:[],borderColor:'#34d399',backgroundColor:'rgba(52,211,153,.14)',borderWidth:2.5,fill:true,tension:.25,pointRadius:0},
+      {label:'ตำแหน่งปัจจุบัน',data:[],showLine:false,pointRadius:7,pointBackgroundColor:'#fbbf24',pointBorderColor:'#fff',pointBorderWidth:2},
+      {label:'จุดสมดุล',data:[],showLine:false,pointRadius:8,pointStyle:'rectRot',pointBackgroundColor:'#fb7185',pointBorderColor:'#fff',pointBorderWidth:2}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:false,
+      interaction:{mode:'nearest',intersect:false},
+      scales:{
+        x:{type:'linear',min:0,max:50,title:{display:true,text:'ปริมาตร Titrant ที่เติม (mL)'},grid:{color:'rgba(255,255,255,.08)'}},
+        y:{min:0,max:14,title:{display:true,text:'ค่า pH'},grid:{color:'rgba(255,255,255,.08)'}}
+      },
+      plugins:{legend:{labels:{boxWidth:12,usePointStyle:true}},tooltip:{callbacks:{label:c=>`pH ${c.parsed.y.toFixed(2)} (เติม ${c.parsed.x.toFixed(1)} mL)`}}}
+    }
+  });
+}
+function updateChart(){
+  if(!chart)return;
+  const pts=[];
+  for(let v=0;v<state.added;v+=.25)pts.push({x:+v.toFixed(2),y:calcPH(v)});
+  pts.push({x:state.added,y:calcPH(state.added)});
+  const veq=getVeq();
+  chart.options.scales.x.max=state.maxVol;
+  chart.data.datasets[0].data=pts;
+  chart.data.datasets[1].data=[{x:state.added,y:calcPH(state.added)}];
+  chart.data.datasets[2].data=state.added>=veq-.26?[{x:veq,y:calcPH(veq)}]:[];
+  chart.update('none');
+}
+
+function updateUI(){
+  const ph=calcPH(state.added),veq=getVeq(),ci=indColor(ph);
+  $('ph').textContent=ph.toFixed(2);
+  $('vol').textContent=state.added.toFixed(1)+' mL';
+  $('col').textContent=ci.t;
+  $('mk').style.left=(ph/14*100)+'%';
+  tg.col.set(ci.c);
+  tg.op=ci.o;
+  tg.f=state.added/state.maxVol;
+  tg.b=1-state.added/state.maxVol;
+  $('eqb').classList.toggle('on',state.added>0&&Math.abs(state.added-veq)<=.26);
+  updateChart();
+  renderCard();
+}
+
+function stopAuto(){
+  if(state.timer){
+    clearInterval(state.timer);
+    state.timer=null;
+    $('auto').classList.remove('run');
+    $('auto').textContent='หยดอัตโนมัติ';
+  }
+}
+function addVol(a){
+  if(state.added>=state.maxVol){stopAuto();return}
+  dropAnim.y0=2.66;
+  dropAnim.t=0;
+  state.added=Math.min(state.maxVol,state.added+a);
+  updateUI();
+}
+function toggleAuto(){
+  if(state.timer){stopAuto();return}
+  $('auto').classList.add('run');
+  $('auto').textContent='หยุดไทเทรต';
+  const step=Math.max(.5,Math.round(state.maxVol/100*2)/2);
+  state.timer=setInterval(()=>{
+    if(state.added>=state.maxVol)stopAuto();
+    else addVol(step);
+  },320);
+}
+function resetSim(){
+  stopAuto();
+  state.added=0;
+  state.maxVol=Math.max(50,Math.ceil(getVeq()*1.6/10)*10);
+  dropAnim.t=-1;rippleAnim.t=-1;
+  drop.visible=false;
+  vis.f=0;vis.b=1;
+  updateUI();
+}
+function updatePair(){
+  state.pair=$('pair').value;
+  const P=PAIRS[state.pair];
+  $('anName').textContent=`${P.an} (${state.anVol} mL)`;
+  $('tiName').textContent=P.ti;
+  $('eqn').textContent=P.eq;
+  $('concept').textContent=P.txt;
+  resetSim();
+}
+
+$('pair').addEventListener('change',updatePair);
+$('anConc').addEventListener('input',e=>{state.anConc=parseFloat(e.target.value);$('anVal').textContent=state.anConc.toFixed(2);resetSim()});
+$('tiConc').addEventListener('input',e=>{state.tiConc=parseFloat(e.target.value);$('tiVal').textContent=state.tiConc.toFixed(2);resetSim()});
+$('ind').addEventListener('change',e=>{state.indicator=e.target.value;updateUI()});
+$('add05').addEventListener('click',()=>addVol(.5));
+$('add10').addEventListener('click',()=>addVol(1));
+$('auto').addEventListener('click',toggleAuto);
+$('reset').addEventListener('click',resetSim);
+
+$('spinBtn').addEventListener('click',e=>{
+  controls.autoRotate=!controls.autoRotate;
+  e.currentTarget.classList.toggle('on',controls.autoRotate);
+});
+$('homeBtn').addEventListener('click',()=>{
+  camera.position.copy(HOME);
+  controls.target.copy(TARGET);
+  controls.update();
+});
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.toggle('on',s.id==='sec-'+t.dataset.tab));
+  if(t.dataset.tab==='graph'&&chart)setTimeout(()=>{chart.resize();updateChart()},30);
+}));
+
+const QZ=[
+  {q:'1. ในการไทเทรตระหว่างกรดอ่อน CH₃COOH ด้วยเบสแก่ NaOH จุดสมดุล (Equivalence Point) จะมีค่า pH ช่วงใด?',o:['A) pH = 7.0 พอดี','B) pH มากกว่า 7.0 (เป็นเบส)','C) pH น้อยกว่า 7.0 (เป็นกรด)'],a:1,
+   ok:'เกลือ CH₃COONa เกิดปฏิกิริยาไฮโดรลิซิสทำให้ได้ OH⁻ ส่งผลให้จุดสมดุลมี pH > 7',
+   no:'เฉลยข้อ B (pH > 7) เพราะกรดอ่อนทำปฏิกิริยากับเบสแก่จะได้เกลือที่มีสมบัติเป็นเบส'},
+  {q:'2. หากต้องการไทเทรตกรดแก่ด้วยเบสอ่อน เช่น HCl กับ NH₃ ควรเลือกใช้อินดิเคเตอร์ชนิดใดจึงจะเหมาะสมที่สุด?',o:['A) ฟีนอล์ฟทาลีน (ช่วง pH 8.3–10.0)','B) เมทิลออเรนจ์ (ช่วง pH 3.1–4.4)','C) ใช้ชนิดใดก็ได้ผลไม่ต่างกัน'],a:1,
+   ok:'การไทเทรตกรดแก่ด้วยเบสอ่อนมีจุดสมดุลอยู่ในช่วงกรด (pH < 7) เมทิลออเรนจ์จึงเปลี่ยนสีในช่วงที่เหมาะสมพอดี',
+   no:'เฉลยข้อ B (เมทิลออเรนจ์) เนื่องจากจุดสมดุลของกรดแก่ + เบสอ่อนเป็นกรด (pH ประมาณ 4–6)'},
+  {q:'3. นำสารละลาย HCl ปริมาตร 25.0 mL มาไทเทรตด้วย NaOH ความเข้มข้น 0.10 M พบว่าใช้ NaOH ไป 25.0 mL พอดีถึงจุดสมดุล ความเข้มข้นของ HCl เริ่มต้นคือเท่าใด?',o:['A) 0.05 M','B) 0.10 M','C) 0.20 M'],a:1,
+   ok:'จากสูตร M₁V₁ = M₂V₂ จะได้ M₁ × 25 = 0.10 × 25 ดังนั้น M₁ = 0.10 M',
+   no:'เฉลยข้อ B (0.10 M) คำนวณจากสูตร M₁V₁ = M₂V₂ เนื่องจากอัตราส่วนโมลของปฏิกิริยาเป็น 1 : 1'}
+];
+$('quizBox').innerHTML=QZ.map((z,i)=>`<div class="q"><p>${z.q}</p>${z.o.map((t,j)=>`<label><input type="radio" name="q${i}" value="${j}"> ${t}</label>`).join('')}<div class="ex" id="ex${i}"></div></div>`).join('');
+$('submitQ').addEventListener('click',()=>{
+  let s=0;
+  QZ.forEach((z,i)=>{
+    const sel=document.querySelector(`input[name="q${i}"]:checked`);
+    const ex=$('ex'+i);
+    const right=sel&&parseInt(sel.value,10)===z.a;
+    if(right)s++;
+    ex.className='ex '+(right?'ok':'no');
+    ex.innerHTML=(right?'✓ <b>ถูกต้อง!</b> ':'✗ <b>ยังไม่ถูกต้อง</b> ')+(right?z.ok:z.no);
+  });
+  const sc=$('score');
+  sc.textContent=`คะแนนที่ได้: ${s} / ${QZ.length}`;
+  sc.style.color=s===QZ.length?'var(--em)':'var(--am)';
+});
+
+initChart();
+updatePair();
+rebuildFlask(levelH(0));
+frame();
+</script>
+</body>
+</html>
